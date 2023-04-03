@@ -99,7 +99,7 @@ data_shift = data.frame(discs=rep(discs,each=n),answers=answers_shift)
 # combine the data from shift and original
 
 data_comb = rbind(data, data_shift)
-data_comb$condition = rep(c("original", "shifted"), each = 140)
+data_comb$condition = rep(c("original", "shifted"), each = 140) # 140 bad, better expression n * 7 oder so
 
 # -> hint: Use the grouping in the quickpsy function
 pmf_comb <- quickpsy(data_comb, discs, answers,
@@ -108,21 +108,23 @@ pmf_comb <- quickpsy(data_comb, discs, answers,
                      prob=0.5,
                      fun=logistic_fun2,
                      parini=list(c(1,15),c(-15,-1)),
-                     bootstrap = "none") # doesnt work aber idk how to make it work
+                     bootstrap = "none") # doesnt work aber idk how to make it work grouping nicht drin ??
+
 # 2.5 fitting both psychometric functions by using quickpsy only twice.
 pmf_shift = quickpsy(data_shift, discs, answers, guess=0, 
                      lapses=FALSE,
                      prob=0.5,
                      fun=logistic_fun2,
                      parini=list(c(1,15),c(-15,-1)),
-                     bootstrap = "none") # shift nicht in function, fehler
+                     bootstrap = "none") # shift nicht in function, fehler ?
 
 PSE_shift = pmf_shift$thresholds
 
 pmf <- quickpsy(data,discs,answers,guess=0,lapses=FALSE,prob=0.5,fun=logistic_fun2,parini=list(c(1,15),c(-15,-1)), bootstrap = "none")
 PSE = pmf$thresholds
-# 3. Extract the PSEs in each condition and visualize (plot) them
 
+# 3. Extract the PSEs in each condition and visualize (plot) them
+  # extractet sind sie 
 xvals <- seq(0,1,length.out=100)
 pred <- logistic_fun2(xvals,pmf$par$par)
 
