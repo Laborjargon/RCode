@@ -230,7 +230,7 @@ par(mfrow = c(1, 3))
 xvals <- seq(0,1,length.out=100)
 pred_launch <- logistic_fun2(xvals,pmf_launch$par$par)
 
-plot(xvals,pred_launch,type="l",xlab="Disc overlap Launch Context", ylab="Proportion causal report", main = paste0("PSE = ", launch_pse$thre))
+plot(xvals,pred_launch,type="l",xlab="Disc overlap Launch Context", ylab="Proportion causal report", main = paste0("PSE = ", round(launch_pse$thre, 3)))
 abline(h=launch_pse[2],lty=2)
 abline(v=launch_pse[1],lty=2)
 
@@ -244,7 +244,7 @@ points(c2$discs,c2$answers)
 xvals <- seq(0,1,length.out=100)
 pred_pass <- logistic_fun2(xvals,pmf_pass$par$par)
 
-plot(xvals,pred_pass,type="l",xlab="Disc overlap Pass Context", ylab="Proportion causal report", main = paste0("PSE = ", pass_pse$thre))
+plot(xvals,pred_pass,type="l",xlab="Disc overlap Pass Context", ylab="Proportion causal report", main = paste0("PSE = ", round(pass_pse$thre, 3)))
 abline(h=pass_pse[2],lty=2)
 abline(v=pass_pse[1],lty=2)
 
@@ -258,7 +258,7 @@ points(c2$discs,c2$answers)
 xvals <- seq(0,1,length.out=100)
 pred_no_context <- logistic_fun2(xvals,pmf_no_context$par$par)
 
-plot(xvals,pred_no_context,type="l",xlab="Disc overlap No Context", ylab="Proportion causal report", main = paste0("PSE = ", no_context_pse$thre))
+plot(xvals,pred_no_context,type="l",xlab="Disc overlap No Context", ylab="Proportion causal report", main = paste0("PSE = ", round(no_context_pse$thre, 3)))
 abline(h=no_context_pse[2],lty=2)
 abline(v=no_context_pse[1],lty=2)
 
