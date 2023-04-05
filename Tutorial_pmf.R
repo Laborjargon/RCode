@@ -179,4 +179,92 @@ m2 <- melt(data_shift,id=c("discs"),measure=c("answers"))
 c2 <- cast(m2,discs ~ variable,mean)
 
 points(c2$discs,c2$answers)
-# -----------------------------------------------------------------------------
+# psychometric curves for sven's data-----------------------------------------------------------------------------
+COC_file = read.table("C:/Users/Ben/Desktop/RSHIT/Data/COC/Coc1011.dat")
+# split data into four conditions 1: kein Context 2: Launch 4: Pass
+
+coc_no_context = COC_file[COC_file$V9 == 1, ]
+coc_launch = COC_file[COC_file$V9 == 2, ]
+coc_pass = COC_file[COC_file$V9 == 4, ]
+
+# drop columns except 6, 26 6: discs 29: bin_answer
+
+launch_reduced = subset(coc_launch, select = c(6, 26))
+no_context_reduced = subset(coc_no_context, select = c(6, 26))
+pass_reduced = subset(coc_pass, select = c(6, 26))
+
+# psychometric curves and PSE 
+# V6 = discs & V26 = answers
+# rename variables 
+colnames(launch_reduced)[1] = "discs" 
+colnames(launch_reduced)[2] = "answers" 
+
+colnames(no_context_reduced)[1] ="discs"
+colnames(no_context_reduced)[2] ="answers"
+
+colnames(pass_reduced)[1] ="discs"
+colnames(pass_reduced)[2] ="answers"     
+
+# sortieren von discs 0.0 - 1
+library('dplyr')
+
+launch_sorted = arrange(launch_reduced, discs)
+
+no_context_sorted = arrange(no_context_reduced, discs)
+
+pass_sorted = arrange(pass_reduced, discs)
+
+# psychometric fitting
+pmf_launch = quickpsy(launch_sorted,discs,answers,guess=0,lapses=FALSE,prob=0.5,fun=logistic_fun2,parini=list(c(1,15),c(-15,-1)), bootstrap = "none")
+launch_pse = pmf_launch$thresholds # 0.6363651
+
+pmf_pass = quickpsy(pass_sorted,discs,answers,guess=0,lapses=FALSE,prob=0.5,fun=logistic_fun2,parini=list(c(1,15),c(-15,-1)), bootstrap = "none")
+pass_pse = pmf_pass$thresholds # 0.46575
+
+pmf_no_context = quickpsy(no_context_sorted,discs,answers,guess=0,lapses=FALSE,prob=0.5,fun=logistic_fun2,parini=list(c(1,15),c(-15,-1)), bootstrap = "none")
+no_context_pse = pmf_no_context$thresholds # 0.5416502
+
+# visualisation
+# launch
+par(mfrow = c(1, 3))
+xvals <- seq(0,1,length.out=100)
+pred_launch <- logistic_fun2(xvals,pmf_launch$par$par)
+
+plot(xvals,pred_launch,type="l",xlab="Disc overlap Launch Context", ylab="Proportion causal report", main = paste0("PSE = ", launch_pse$thre))
+abline(h=launch_pse[2],lty=2)
+abline(v=launch_pse[1],lty=2)
+
+# add means from simulated data to the plot
+m2 <- melt(launch_sorted,id=c("discs"),measure=c("answers"))
+c2 <- cast(m2,discs ~ variable,mean)
+
+points(c2$discs,c2$answers)
+
+# pass 
+xvals <- seq(0,1,length.out=100)
+pred_pass <- logistic_fun2(xvals,pmf_pass$par$par)
+
+plot(xvals,pred_pass,type="l",xlab="Disc overlap Pass Context", ylab="Proportion causal report", main = paste0("PSE = ", pass_pse$thre))
+abline(h=pass_pse[2],lty=2)
+abline(v=pass_pse[1],lty=2)
+
+# add means from simulated data to the plot
+m2 <- melt(pass_sorted,id=c("discs"),measure=c("answers"))
+c2 <- cast(m2,discs ~ variable,mean)
+
+points(c2$discs,c2$answers)
+
+# no context
+xvals <- seq(0,1,length.out=100)
+pred_no_context <- logistic_fun2(xvals,pmf_no_context$par$par)
+
+plot(xvals,pred_no_context,type="l",xlab="Disc overlap No Context", ylab="Proportion causal report", main = paste0("PSE = ", no_context_pse$thre))
+abline(h=no_context_pse[2],lty=2)
+abline(v=no_context_pse[1],lty=2)
+
+# add means from simulated data to the plot
+m2 <- melt(no_context_sorted,id=c("discs"),measure=c("answers"))
+c2 <- cast(m2,discs ~ variable,mean)
+
+points(c2$discs,c2$answers)
+
