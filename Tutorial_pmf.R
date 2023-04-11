@@ -268,3 +268,38 @@ c2 <- cast(m2,discs ~ variable,mean)
 
 points(c2$discs,c2$answers)
 
+# data in the same plot 
+library(ggplot2)
+
+tripleplot_data = data.frame(
+  xvals = seq(0,1,length.out=100),
+  launch_curve = pred_launch,
+  pass_curve = pred_pass,
+  no_context_curve = pred_no_context
+  )
+
+triple_plot = ggplot(tripleplot_data, aes(x = xvals)) +
+  geom_line(aes(y = pred_launch), color = "blue", size = 1.5) + 
+  geom_line(aes(y = pred_pass), color = "red", size = 1.5) +
+  geom_line(aes(y = pred_no_context), color = "green", size = 1.5) +
+  labs(title = "Psychometric Curves",
+       x = "Disc Overlap",
+       y = "Proportion Causal Report")
+
+PSE_launch = pmf_launch$thresholds$thre
+PSE_pass = pmf_pass$thresholds$thre
+PSE_no_context = pmf_no_context$thresholds$thre
+
+triple_pse = data.frame(x = 0.5,
+                        PSE = c(PSE_launch, PSE_pass, PSE_no_context), 
+                        label = c("PSE Launch", "PSE Pass", "PSE No Context"))
+
+
+triple_plot = triple_plot + scale_color_manual(values = c("PSE Launch" = "blue", "PSE Pass" = "red", "PSE No Context" = "green")) 
+
+triple_plot = triple_plot + geom_point(data = triple_pse, aes(x = x, y = PSE, color = label), size = 3, shape = 21, fill = "white")
+
+print(triple_plot)
+
+
+
