@@ -64,16 +64,16 @@ points(c2$discs,c2$answers)
 
 # -----------------------------------------------------------------------------
 # Fragen zum Weiterdenken:
-# Welche Werte für die Parameter hat die quickpsy function errechnet?
+# Welche Werte f???r die Parameter hat die quickpsy function errechnet?
 
 pmf$par$par[1]
 pmf$par$par[2] # nicht gleich weil normalverteilung mit 20 wdh um parameter
 
-# Sind das die gleichen Zahlen, die Du auch für die Simulation genutzt hast?
+# Sind das die gleichen Zahlen, die Du auch f???r die Simulation genutzt hast?
 # theoretisch sogar ja weil man n -> inf dann sollten sie konvergieren
 # Wenn ja, oder nein warum? 
 # s. o. 
-# Falls nein, welche Zeile im Script könntest Du anpassen um auf sehr ähnliche Zahlen zu kommen?
+# Falls nein, welche Zeile im Script k???nntest Du anpassen um auf sehr ???hnliche Zahlen zu kommen?
 # n = 1000 line 32
 # -----------------------------------------------------------------------------
 
@@ -81,7 +81,7 @@ pmf$par$par[2] # nicht gleich weil normalverteilung mit 20 wdh um parameter
 # Next steps:
 # 1. Simulate a second condition with a leftward-shift
 discs = seq(0,1,length.out=7)
-param_vals = c(5,-10) 
+param_vals = c(5,-10)
 shift = -0.3 
 n = 20 # n bleibt erstmal 20 
 
@@ -180,7 +180,9 @@ c2 <- cast(m2,discs ~ variable,mean)
 
 points(c2$discs,c2$answers)
 # psychometric curves for sven's data-----------------------------------------------------------------------------
-COC_file = read.table("C:/Users/somme/Documents/R/Data/Coc1011.dat")
+# COC_file = read.table("C:/Users/somme/Documents/R/Data/Coc1011.dat")
+# depending on working computer:
+COC_file = read.table("C:/Users/Ben/Desktop/RSHIT/Data/COC/Coc1011.dat")
 # split data into four conditions 1: kein Context 2: Launch 4: Pass
 
 coc_no_context = COC_file[COC_file$V9 == 1, ]
@@ -322,7 +324,7 @@ simulated_parameter_val_2 = rnorm(8, -10, 1) # value = -10
 simulated_parameter_vals = data.frame(simulated_parameter_val_1, simulated_parameter_val_2)
 
 fake_person1 = c(simulated_parameter_vals$simulated_parameter_val_1[1], simulated_parameter_vals$simulated_parameter_val_2[1]) 
-# normalverteilung um paramateer für alle personen
+# normalverteilung um paramateer f???r alle personen
 person_list = list()
 
 for (i in 1:8) {
@@ -334,10 +336,108 @@ colnames(fake_person_df) <- c("PersonNr", "Parameter_Val_1", "Parameter_Val_2")
 # below is from chatgpt
 fake_person_df$param_vals = paste0("(", fake_person_df$Parameter_Val_1, ", ", fake_person_df$Parameter_Val_2, ")")
 
-# for loop für jeweiligen personen und generate datensatz 
+# for loop f???r jeweiligen personen und generate datensatz 
 # VPN erkennbar machen UND condition
 simulation = data.frame(discs = "", # disc overlap
                         answers = "", # 0:1 
                         condition_fac = "", # condition 1:3 as factor 
                         pid = "") # 1:8 
+simulation$condition_fac = as.factor(simulation$condition_fac)
+
 # n * 420 observations 
+
+# simulating normal parameters --------------------------------------------
+
+# for loop for simulating -------------------------------------------------
+
+for (i in 1:8) {
+  # Get parameter values for current person
+  param_vals <- as.numeric(c(fake_person_df$Parameter_Val_1[i], fake_person_df$Parameter_Val_2[i]))
+  
+  # Determine proportion of causal reports
+  answer_mean <- logistic_fun2(discs, param_vals)
+  
+  # Simulate n trials for each disc overlap based on answer_mean
+  answers <- as.vector(mapply(rbinom, n, 1, answer_mean))
+  
+  # Combine in nice data frame
+  person_data <- data.frame(discs=rep(discs, each=n), answers=answers, pid=i)
+  
+  # Append to master data frame
+  if (i == 1) {
+    master_data <- person_data
+  } else {
+    master_data <- rbind(master_data, person_data)
+  }
+}
+
+# shifted data and normal data --------------------------------------------
+# logistic_fun2 = function (x, p) {(1 + exp(-(p[1]+p[2]*x)))^(-1)}
+n = 20
+for (i in 1:8) {
+  # Get parameter values for current person
+  param_vals <- as.numeric(c(fake_person_df$Parameter_Val_1[i], fake_person_df$Parameter_Val_2[i]))
+  
+  # Determine proportion of causal reports without shift
+  answer_mean <- logistic_fun2(discs, param_vals)
+  
+  # Determine proportion of causal reports with shift
+  shift <- rnorm(1, -0.25, 0.05)
+  answer_mean_shift <- logistic_fun2_shift(discs, param_vals, shift)
+  
+  # Simulate n trials for each disc overlap based on both means
+  #answers <- as.vector(rbinom(n * 7, 1, answer_mean))
+  answers = as.vector(mapply(rbinom, n, 1, answer_mean))
+  #answers_shift <- as.vector(rbinom(n * 7, 1, answer_mean_shift))
+  answers_shift = as.vector(mapply(rbinom, n, 1, answer_mean_shift))
+  # Combine in nice data frame
+  person_data <- data.frame(discs = rep(discs, each = n),
+                            answers = c(answers, answers_shift),
+                            person = rep(i, each = n * 14),
+                            shift = c(rep("no", each = n * 7), rep("yes", each = n * 7)))
+  
+  # Append to master data frame
+  if (i == 1) {
+    master_data <- person_data
+  } else {
+    master_data <- rbind(master_data, person_data)
+  }
+}
+
+# including all 3 conditions ----------------------------------------------
+# how shift: shift = rep(shift_factor, each = n * 7) in df 
+
+for (i in 1:8) {
+  # Get parameter values for current person
+  param_vals <- as.numeric(c(fake_person_df$Parameter_Val_1[i], fake_person_df$Parameter_Val_2[i]))
+  
+  # Determine proportion of causal reports without shift
+  answer_mean <- logistic_fun2(discs, param_vals)
+  
+  # Determine proportion of causal reports with shift
+  shift_neg <- rnorm(1, -0.25, 0.05)
+  answer_mean_shift_neg <- logistic_fun2_shift(discs, param_vals, shift_neg)
+  
+  # positive shift 
+  shift_pos <- rnorm(1, 0.25, 0.05)
+  answer_mean_shift_pos <- logistic_fun2_shift(discs, param_vals, shift_pos)
+  
+  # Simulate n trials for each disc overlap based on both means
+  answers <- as.vector(mapply(rbinom, n, 1, answer_mean))
+  answers_shift_neg <- as.vector(mapply(rbinom, n, 1, answer_mean_shift_neg))
+  answers_shift_pos <- as.vector(mapply(rbinom, n, 1, answer_mean_shift_pos))
+  
+  # Combine in nice data frame
+  person_data <- data.frame(discs = rep(discs, each = n),
+                            answers = c(answers, answers_shift_neg, answers_shift_pos),
+                            person = rep(i, each = n * 21),
+                            shift = rep(c("no", "negative", "positive"), each = n * 7))
+  
+  # Append to master data frame
+  if (i == 1) {
+    master_data <- person_data
+  } else {
+    master_data <- rbind(master_data, person_data)
+  }
+}
+
