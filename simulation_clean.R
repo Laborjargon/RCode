@@ -5,8 +5,8 @@ logistic_fun2 <- function(x, p) {(1 + exp(-(p[1]+p[2]*x)))^(-1)}
 logistic_fun2_shift <- function(x, p, s) {(1 + exp(-(p[1]+(p[2]+s)*x)))^(-1)}
 
 # Define simulated parameter values and create fake person data frame
-simulated_parameter_val_1 <- rnorm(8, 5, 1)
-simulated_parameter_val_2 <- rnorm(8, -10, 1)
+simulated_parameter_val_1 <- rnorm(8, 5, 0.25)
+simulated_parameter_val_2 <- rnorm(8, -10, 0.25)
 simulated_parameter_vals <- data.frame(simulated_parameter_val_1, simulated_parameter_val_2)
 
 fake_person_list <- lapply(1:8, function(i) {
@@ -57,3 +57,101 @@ master_data$person = as.factor(master_data$person)
 master_data$shift = as.factor(master_data$shift)
 pmf_master_data = quickpsy(master_data,discs,answers,guess=0,lapses=FALSE,prob=0.5,grouping=.c("shift", "person"),fun=logistic_fun2,parini=list(c(1,15),c(-15,-1)), bootstrap = "none")
 xvals = seq(0,1,length.out=100)
+# xvals_df <- data.frame(discs = rep(xvals, times = 8)) # number of people
+
+
+# this is no longer clean code --------------------------------------------
+
+for (p in levels(master_data$person)) {
+  for (s in levels(master_data$shift)) {
+    # Subset the data for the current person and condition
+    data_subset <- subset(master_data, person == p & shift == s)
+    
+    # Compute the psychometric function using quickpsy
+    pmf <- quickpsy(data_subset, discs, answers, guess = 0, lapses = FALSE, prob = 0.5, fun = logistic_fun2, parini = list(c(1, 15), c(-15, -1)),
+                    bootstrap = "none")
+    
+    # Extract the PSE
+    PSE <- pmf$thresholds[1]
+    #print(paste(PSE, p))
+    
+    # Define x values for plotting
+    xvals <- seq(0,1,length.out=100)
+    
+    # Compute predicted probabilities using the estimated parameters
+    pred <- logistic_fun2(xvals, pmf$par$par)
+    
+    # Plot the psychometric function
+    plot(xvals, pred, type = "l", xlab = "Disc overlap", ylab = "Proportion causal report")
+    
+    # Add a dashed line for the PSE
+    abline(h = PSE, lty = 2)
+    
+    # Add a dashed line for the 50% probability threshold
+    # abline(h = 0.5, lty = 2)
+    
+    # Add the means from the simulated data to the plot
+    m2 <- melt(data_subset, id = c("discs"), measure = c("answers"))
+    c2 <- cast(m2, discs ~ variable, mean)
+    points(c2$discs, c2$answers)
+    
+    # Add a title for the plot
+    title(paste("Psychometric function for Person", p, "and", s, "condition"))
+  }
+}
+# make plot in ggplot because this is revolting to look at
+
+
+# ANOVA within persona non grata ---------------------------------------------------------
+
+library(tidyr)
+
+# Convert the data to wide format
+# wide_data <- pivot_wider(master_data, id_cols = person, names_from = shift, values_from = answers)
+# this is interesting but useless
+
+pse_data = data.frame(person = character(), shift = character(), PSE = numeric())
+for (p in levels(master_data$person)) {
+  for (s in levels(master_data$shift)) {
+    # Subset the data for the current person and condition
+    data_subset <- subset(master_data, person == p & shift == s)
+    
+    # Compute the psychometric function using quickpsy
+    pmf <- quickpsy(data_subset, discs, answers, guess = 0, lapses = FALSE, prob = 0.5, fun = logistic_fun2, parini = list(c(1, 15), c(-15, -1)),
+                    bootstrap = "none")
+    
+    # Extract the PSE
+    PSE <- pmf$thresholds[1]
+    
+    # Add the PSE to the data frame
+    pse_data <- rbind(pse_data, data.frame(person = p, shift = s, PSE = PSE))
+  }
+}
+
+pse_wide <- pivot_wider(pse_data, id_cols = person, names_from = shift, values_from = thre)
+
+#library(tidyverse)
+#library(ggpubr)
+library(rstatix)
+# Convert the structure into long format again because why not 
+pse_long <- pse_wide %>%
+  gather(key = "condition", value = "PSE", neg, no, pos) %>%
+  convert_as_factor(person, condition)
+
+pse_long %>%
+  group_by(condition) %>%
+  get_summary_stats(PSE, type = "mean_sd")
+
+pse_anova = anova_test(data = pse_long, dv = PSE, wid = person, within = condition)
+get_anova_table(pse_anova)
+# pse standarised?
+# pairwise comparisons
+pwc <- pse_long %>%
+  pairwise_t_test(
+    PSE ~ condition, paired = TRUE,
+    p.adjust.method = "bonferroni"
+  )
+pwc
+#bxp <- ggboxplot(pse_long, x = "condition", y = "PSE", add = "point")
+#bxp
+# pse ranks, packages not working is problem, p.adj. 1 is problem 
