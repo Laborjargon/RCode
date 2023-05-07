@@ -50,3 +50,10 @@ for (i in 1:8) {
     master_data <- rbind(master_data, person_data)
   }
 }
+
+# grouping ----------------------------------------------------------------
+
+master_data$person = as.factor(master_data$person)
+master_data$shift = as.factor(master_data$shift)
+pmf_master_data = quickpsy(master_data,discs,answers,guess=0,lapses=FALSE,prob=0.5,grouping=.c("shift", "person"),fun=logistic_fun2,parini=list(c(1,15),c(-15,-1)), bootstrap = "none")
+xvals = seq(0,1,length.out=100)
