@@ -1,8 +1,10 @@
-# cleaned up version 
+# cleaned up version
+library(quickpsy)
+library(reshape)
 # Define functions
 discs = seq(0,1,length.out=7)
 logistic_fun2 <- function(x, p) {(1 + exp(-(p[1]+p[2]*x)))^(-1)}
-logistic_fun2_shift <- function(x, p, s) {(1 + exp(-(p[1]+(p[2]+s)*x)))^(-1)}
+logistic_fun2_shift <- function(x, p, s) {(1 + exp(-(p[1]+(p[2])*(x-s))))^(-1)}
 
 # Define simulated parameter values and create fake person data frame
 simulated_parameter_val_1 <- rnorm(8, 5, 0.25)
@@ -18,6 +20,7 @@ colnames(fake_person_df) <- c("PersonNr", "Parameter_Val_1", "Parameter_Val_2")
 
 
 # Simulate causal report data
+set.seed(123)
 n <- 20
 for (i in 1:8) {
   # Get parameter values for current person
@@ -99,7 +102,8 @@ for (p in levels(master_data$person)) {
     title(paste("Psychometric function for Person", p, "and", s, "condition"))
   }
 }
-# make plot in ggplot because this is revolting to look at
+# make plot in ggplot because this is revolting to look at -> later
+
 
 
 # ANOVA within persona non grata ---------------------------------------------------------
@@ -144,7 +148,7 @@ pse_long %>%
 
 pse_anova = anova_test(data = pse_long, dv = PSE, wid = person, within = condition)
 get_anova_table(pse_anova)
-# pse standarised?
+# pse standardised?
 # pairwise comparisons
 pwc <- pse_long %>%
   pairwise_t_test(
@@ -154,4 +158,82 @@ pwc <- pse_long %>%
 pwc
 #bxp <- ggboxplot(pse_long, x = "condition", y = "PSE", add = "point")
 #bxp
-# pse ranks, packages not working is problem, p.adj. 1 is problem 
+# packages not working is problem
+# 2 figures: 1 results, 1 methods
+
+# ggplot ------------------------------------------------------------------
+library(ggplot2)
+
+results_list <- list()
+
+# Loop through each person in the dataset
+for (p in levels(master_data$person)) {
+  
+  # Create an empty list to store the results for each condition
+  person_results <- list()
+  
+  # Loop through each condition for the current person
+  for (s in levels(master_data$shift)) {
+    
+    # Subset the data for the current person and condition
+    data_subset <- subset(master_data, person == p & shift == s)
+    
+    # Compute the psychometric function using quickpsy
+    pmf <- quickpsy(data_subset, discs, answers, guess = 0, lapses = FALSE, prob = 0.5, fun = logistic_fun2, parini = list(c(1, 15), c(-15, -1)),
+                    bootstrap = "none")
+    
+    # Extract the PSE
+    PSE <- pmf$thresholds[1]
+    
+    # Define x values for plotting
+    xvals <- seq(0,1,length.out=100)
+    
+    # Compute predicted probabilities using the estimated parameters
+    pred <- logistic_fun2(xvals, pmf$par$par)
+    
+    # Store the results for the current condition
+    person_results[[s]] <- pred
+    
+  }
+  
+  # Combine the results for each condition into a data frame
+  person_df <- data.frame(xvals = xvals, neg_shift = person_results[[1]], no_shift = person_results[[2]], pos_shift = person_results[[3]])
+  
+  # Add the person's data frame to the results list
+  results_list[[p]] <- person_df
+  
+}
+
+# View the results for the first person
+# results_list[[1]]
+
+for (p in levels(master_data$person)) {
+  tripleplot_data = data.frame(
+    xvals = seq(0,1,length.out=100),
+    launch_curve = results_list[[p]]$pos_shift, 
+    pass_curve = results_list[[p]]$neg_shift,
+    no_context_curve = results_list[[p]]$no_shift
+  )
+  triple_plot = ggplot(tripleplot_data, aes(x = xvals)) +
+    geom_line(aes(y = results_list[[p]]$pos_shift), color = "blue", size = 1.5) + 
+    geom_line(aes(y = results_list[[p]]$neg_shift), color = "red", size = 1.5) +
+    geom_line(aes(y = results_list[[p]]$no_shift), color = "green", size = 1.5) +
+    labs(title = paste("Psychometric functions for Person", p), 
+         x = "Disc Overlap",
+         y = "Proportion Causal Report")
+  
+  PSE_launch = pse_wide$pos[as.numeric(p)]
+  PSE_pass = pse_wide$neg[as.numeric(p)]
+  PSE_no_context = pse_wide$no[as.numeric(p)]
+  
+  triple_pse = data.frame(middle = 0.5,
+                          PSE = c(PSE_launch, PSE_pass, PSE_no_context), 
+                          label = c("PSE Launch", "PSE Pass", "PSE No Context"))
+  
+  
+  triple_plot = triple_plot + scale_color_manual(values = c("PSE Launch" = "blue", "PSE Pass" = "red", "PSE No Context" = "green")) 
+  
+  triple_plot = triple_plot + geom_point(data = triple_pse, aes(x = PSE, y = middle, color = label), size = 3.5, shape = 21, fill = "white")
+  
+  print(triple_plot)
+}
