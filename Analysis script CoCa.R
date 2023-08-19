@@ -6,11 +6,12 @@ library(ggplot2)
 library(dplyr)
 library(quickpsy)
 library(reshape)
+library(tidyr)
 
 logistic_fun2 <- function (x, p) {(1 + exp(-(p[1]+p[2]*x)))^(-1)}
 discs <- seq(0,1,length.out=7)
 
-COC_file = read.table("C:/Users/somme/Desktop/Bachelorarbeit/Data/CoCa/Coc1081.dat")
+COC_file = read.table("C:/Users/somme/Desktop/Bachelorarbeit/Data/CoCa/Coc1093.dat")
 # depending on working computer:
 # COC_file = read.table("C:/Users/Ben/Desktop/RSHIT/Data/COC/Coc1011.dat")
 # split data into four conditions 1 no_context 2 launch 4 pass 
@@ -267,12 +268,21 @@ post_plot$version = "post"
 
 # Combine both data frames
 combined_data = rbind(pre_plot, post_plot)
+reshaped_data <- combined_data %>%
+  gather(key = "curve_type", value = "y_values", launch_curve, pass_curve, no_context_curve)
+reshaped_data$curve_type = as.factor(reshaped_data$curve_type)
+reshaped_data$version = as.factor(reshaped_data$version) 
+# Create a plot using ggplot2
+combo_plot <- ggplot(data = reshaped_data, aes(x = xvals, y = y_values, linetype = version, color = curve_type    )) +
+  geom_line() +
+  scale_linetype_manual(values = c("pre" = "solid", "post" = "dashed")) +
+  labs(title = "Curves for Pre and Post Conditions",
+       x = "X Axis Label",
+       y = "Y Axis Label",
+       color = "Version",
+       shape = "Curve Type",
+       linetype = "Version") +
+  theme_minimal()
 
-# Create ggplot with facet_wrap to arrange pre and post plots in one figure
-# ggplot(combined_data, aes(x = xvals, color = version)) +
-#   geom_point() +
-#   ggtitle("Pre and Post Plot") +
-#   xlab("X-axis") +
-#   ylab("Y-axis") +
-#   facet_wrap(~ version, ncol = 1) +
-#   theme(legend.position = "top")  
+# Display the plot
+print(combo_plot)
