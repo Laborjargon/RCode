@@ -350,21 +350,38 @@ mean_rates <- aggregate(COC_file$V26, by=list(COC_file$V1), FUN=mean)
 colnames(mean_rates) <- c("Block", "Mean_Launch_Rate")
 
 # Add the mean of means as a new column in the mean_rates data frame
-mean_rates$mean_of_Means = cumsum(mean_rates$Mean_Launch_Rate) / (1:nrow(mean_rates))
+# mean_rates$mean_of_means = cumsum(mean_rates$Mean_Launch_Rate) / (1:nrow(mean_rates))
+
+mean_rates_pre = mean_rates[mean_rates$Block < 9,]
+mean_rates_pre$mean_of_means_pre = cumsum(mean_rates_pre$Mean_Launch_Rate) / (1:nrow(mean_rates_pre))
+
+mean_rates <- mean_rates %>%
+  left_join(mean_rates_pre %>% select(Block, mean_of_means_pre), by = "Block")
+
+mean_rates_post = mean_rates[mean_rates$Block >= 9,]
+mean_rates_post$mean_of_means_post = cumsum(mean_rates_post$Mean_Launch_Rate) / (1:nrow(mean_rates_post))
+
+mean_rates <- mean_rates %>%
+  left_join(mean_rates_post %>% select(Block, mean_of_means_post), by = "Block")
+
+
+
 
 # Create a scatterplot of the mean launch report rate
 mean_plot = ggplot(mean_rates, aes(x=Block, y=Mean_Launch_Rate)) +
   geom_point() +  # Scatterplot points for individual block means
   geom_line() +   # Connect points with lines
   #geom_point(aes(x=Block, y=mean_of_Means), color="red", size=3) +  # Plot mean of means as red points
-  geom_line(aes(x=Block, y=mean_of_Means), color="red") +  # Connect mean of means with a red line
+  geom_line(aes(x=Block, y=mean_of_means_pre), color="red", size = 1) +  # Connect mean of means with a red line
+  geom_line(aes(x=Block, y=mean_of_means_post), color="green", size = 1) + 
   labs(title="Mean Launch Report Rate per Block",
        x="Block Number", y="Mean Causal Report") +
   theme_minimal()  + ylim(0.35,0.6)
 
 print(mean_plot)
 
-# ggsave("C:/Users/somme/Desktop/Bachelorarbeit/Figures/boomboclat.png", width=8, height=8, units="in")
+
+#ggsave("C:/Users/somme/Desktop/Bachelorarbeit/Figures/meanofmeans.png", width=8, height=8, units="in")
 
 # ANOVA and TTEST (maybe boxplots?) ---------------------------------------
 logistic_fun2 <- function (x, p) {(1 + exp(-(p[1]+p[2]*x)))^(-1)}
