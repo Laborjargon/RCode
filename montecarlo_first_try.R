@@ -32,8 +32,8 @@ for (n in 2:20) {
     
     # Simulating data where the alternative hypothesis is true 
     # and the true difference is 0.5
-    placebo = rnorm(n, mean = 0, sd = 1)
-    treatment = rnorm(n, mean = effect_size, sd = 1)
+    placebo = rnorm(n, mean = launch_mean_diff, sd = l_diff_sd)
+    treatment = rnorm(n, mean = no_context_mean_diff, sd = nc_diff_sd)
     
     # Run the hypothesis test with a 5% level
     test = t.test(placebo, treatment, conf.level = 0.95)
